@@ -16,8 +16,9 @@ path_validacion = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimi
 #Declarando los parametros de la red neuronal
 epocas = 20
 altura, longitud = 250, 250
-batch_size = 20
-pasos = 1000
+batch_size = 15
+#pasos = 500
+pasos_por_epoca = 1300/15
 pasos_de_validacion = 200
 FConv1 = 32
 FConv2 = 64
@@ -75,7 +76,7 @@ cnn.add(Dense(clases, activation = 'softmax'))
 #Copilacin
 cnn.compile(loss = 'categorical_crossentropy', optimizer = optimizers.Adam(lr = lr, beta_1 = 0.5 ), metrics = ['accuracy'])
 
-cnn.fit(imagen_entrenamiento, steps_per_epoch = pasos, epochs = epocas, validation_data = imagen_validacion, validation_steps = pasos_de_validacion)
+cnn.fit(imagen_entrenamiento, steps_per_epoch = pasos_por_epoca , epochs = epocas, validation_data = imagen_validacion, validation_steps = pasos_de_validacion)
 
 
 #Guardando el modelo
