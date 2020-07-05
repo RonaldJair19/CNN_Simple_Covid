@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[38]:
+# In[3]:
 
 
 import sys
@@ -29,6 +29,7 @@ path_entrenamiento = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conoc
 path_validacion = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/img_validacion'
 path_covid = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/img_entrenamiento/covid'
 path_nocovid = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/img_entrenamiento/nocovid'
+path_pruebas = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/Imagenes_Prueba'
 
 
 # In[19]:
@@ -37,7 +38,7 @@ path_nocovid = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimient
 #print('Total de imagenes de entrenamiento:', len(os.listdir('E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/img_entrenamiento/nocovid')))
 
 
-# In[29]:
+# In[7]:
 
 
 #Declarando los parametros de la red neuronal
@@ -54,7 +55,7 @@ clases = 2
 lr = 0.0005
 
 
-# In[30]:
+# In[8]:
 
 
 #Funciones para el preprocesamiento de imagenes
@@ -155,8 +156,116 @@ plt.legend(loc = "lower left")
 plt.savefig("plot.png")
 
 
+# In[12]:
+
+
+data_prueba = ImageDataGenerator(preprocessing_function=preprocess_input)
+
+prueba_generador = data_prueba.flow_from_directory(
+    directory = path_pruebas,
+    target_size = (altura, longitud),
+    color_mode = "rgb",
+    batch_size = 1,
+    class_mode = None,
+    shuffle = False,
+    seed = 42
+)
+
+
 # In[ ]:
 
 
+STEP_SIZE_TEST = prueba_generador//prueba_generador.batch_size
+test_generator.reset()
+pred = cnn.predict_generator(prueba_generador, steps= STEP_SIZE_TEST,verbose = 1)
 
+
+# In[ ]:
+
+
+predicted_class_indices = np.argmax(pred, axis = 1)
+
+
+# In[ ]:
+
+
+print (predicted_class_indices)
+print (type(predicted_class_indices))
+
+
+# In[ ]:
+
+
+labels = (imagen_entrenamiento.class_indices)
+labels = dict((v,k) for k,v in lavels.items())
+predictions = [labels[k] for k in predicted_class_indices]
+
+
+# In[ ]:
+
+
+filenames = prueba_generador.filenames
+results = pd.DataFrame({"Filename":filenames, "Predictions":predictions})
+results.to_csv("nombre_del_cvs.csv", index = False)
+
+
+# In[ ]:
+
+
+real_class_indices = []
+for i in range(0, len(filenames)):
+    your_path = filenames[i]
+    path_list = your_path.split(os.sep)
+    if("covid" in path_list[1]):
+        real_class_indices.append(0)
+    if("ct_covid" in path_list[1]):
+        real_class_indices.append(1)
+    if("ct_nocovid" in path_list[2]):
+        real_class_indices.append(2)
+    if("nocovid" in path_list[3]):
+        real_class_indices.append(3)
+    print (real_class_indices)
+    print(type(real_class_indices))
+    real_class_indices = np.array(real_class_indices)
+    print (type(real_class_indices))
+
+
+# In[ ]:
+
+
+cm = confusion_matrix(real_class_indices, predicted_class_indices)
+
+
+# In[ ]:
+
+
+def plot_confusion_matrix(cm, classes, normalize = False, title = 'Confusion matrix', cmap = plt.cm.Blues):
+    plt.inshow(cm, interpolation = 'nearest', cmap = cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation = 45)
+    plt.yticks(tick_marks, classes)
+    if normalize:
+        cm = cm.astype('float')/cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print ('Confusion matrix, without normalization')
+    print(cm)
+    thresh = cm.max()/2.
+    for i,j in itertools, product(range(cm.shape[0]),range(cm.shape[1])):
+        plt.text(j,i,cm[i,j],
+                 horizontalaligment = "center"
+                 color="white" if cm[i,j]>thresh else "black")
+        plt.tight_layout()
+        plt.ylabel('True label')
+        plt.xlabel('Predicted label')
+        
+
+
+# In[ ]:
+
+
+cm_plot_labels = imagen_entrenamiento.class_indices
+plot_confusion_matrix(cm,cm_plot_labels, title= 'Matriz de confusion')
 
