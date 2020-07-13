@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[18]:
+# In[54]:
 
 
 import sys
@@ -20,7 +20,7 @@ from mlxtend.evaluate import confusion_matrix
 from keras.applications.mobilenet import preprocess_input
 
 
-# In[49]:
+# In[55]:
 
 
 K.clear_session()
@@ -33,30 +33,36 @@ path_nocovid = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimient
 path_pruebas = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/imagenes_prueba'
 
 
-# In[50]:
+# In[56]:
 
 
 #print('Total de imagenes de entrenamiento:', len(os.listdir('E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/img_entrenamiento/nocovid')))
 
 
-# In[51]:
+# In[57]:
 
 
 #Declarando los parametros de la red neuronal
 epocas = 20
-altura, longitud = 250, 250
+altura, longitud = 256, 256
 batch_size = 20
 #pasos = 500
-FConv1 = 32
-FConv2 = 64
-tam_fil1 = (3,3)
-tam_fil2 = (2,2)
+FConv1 = 4
+FConv2 = 8
+FConv3 = 16
+FConv4 = 32
+FConv5 = 64
+tam_fil1 = (6,6)
+tam_fil2 = (5,5)
+tam_fil3 = (4,4)
+tam_fil4 = (3,3)
+tam_fil5 = (2,2)
 tam_pool = (2,2)
-clases = 4
-lr = 0.0005
+clases = 2
+lr = 0.0007
 
 
-# In[52]:
+# In[58]:
 
 
 #Funciones para el preprocesamiento de imagenes
@@ -68,13 +74,13 @@ data_gen_entrenamiento = ImageDataGenerator(
 )
 
 data_gen_validacion = ImageDataGenerator(
-	rescale = 1./225
+	rescale = 1./255
 	)
 
-data_prueba = ImageDataGenerator(rescale = 1./225)
+data_prueba = ImageDataGenerator(rescale = 1./255)
 
 
-# In[53]:
+# In[59]:
 
 
 imagen_entrenamiento = data_gen_entrenamiento.flow_from_directory(
@@ -100,13 +106,13 @@ prueba_generador = data_prueba.flow_from_directory(
 )
 
 
-# In[7]:
+# In[60]:
 
 
 print(imagen_entrenamiento.class_indices)
 
 
-# In[8]:
+# In[61]:
 
 
 #steps_per_epoch = imagen_entrenamiento.n
@@ -117,29 +123,41 @@ pasos_por_epoca = ((len(os.listdir(path_covid))+len(os.listdir(path_nocovid)))/b
 pasos_de_validacion = 180/20
 
 
-# In[9]:
+# In[62]:
 
 
 #Editar las capas de convolucion, hay que agregar mas capas debido al tamaño de las imagenes
 #Se crea la red convolucional
 cnn = Sequential()
-#Primera capa - Capa de partida
+
 cnn.add(Convolution2D(FConv1, tam_fil1, padding = 'same', input_shape = (altura, longitud,3), activation = 'relu'))
-#Segunda Capa
+
 cnn.add(MaxPooling2D(pool_size = tam_pool))
-#Tercera capa
+
 cnn.add(Convolution2D(FConv2, tam_fil2, padding = 'same', activation = 'relu'))
-#Cuarta capa
+
 cnn.add(MaxPooling2D(pool_size = tam_pool))
-#Quinta Capa, aplana la imagen
+
+cnn.add(Convolution2D(FConv3, tam_fil3, padding = 'same', activation = 'relu'))
+
+cnn.add(MaxPooling2D(pool_size = tam_pool))
+
+cnn.add(Convolution2D(FConv4, tam_fil4, padding = 'same', activation = 'relu'))
+
+cnn.add(MaxPooling2D(pool_size = tam_pool))
+
+cnn.add(Convolution2D(FConv5, tam_fil5, padding = 'same', activation = 'relu'))
+
+cnn.add(MaxPooling2D(pool_size = tam_pool))
+
 cnn.add(Flatten())
-#Sexta capa densa
+
 cnn.add(Dense(256, activation = 'relu'))
-#Septima capa, capa de apagado
-cnn.add(Dropout(0.5))
-#Octava capa densa
+
+cnn.add(Dropout(0.60))
+
 cnn.add(Dense(clases, activation = 'softmax'))
-#Copilacion
+
 cnn.compile(loss = 'categorical_crossentropy', optimizer = optimizers.Adam(lr = lr, beta_1 = 0.5 ), metrics = ['accuracy'])
 
 H = cnn.fit(imagen_entrenamiento, steps_per_epoch = pasos_por_epoca , epochs = epocas, validation_data = imagen_validacion, validation_steps = pasos_de_validacion)
@@ -156,7 +174,13 @@ cnn.save_weights('E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimie
 print('Modelo Guardado!')
 
 
-# In[13]:
+# In[63]:
+
+
+cnn.summary()
+
+
+# In[64]:
 
 
 N = epocas
@@ -173,17 +197,17 @@ plt.legend(loc = "lower left")
 plt.savefig("plot.png")
 
 
-# In[39]:
+# In[65]:
 
 
-data_prueba = ImageDataGenerator(rescale = 1./225)
+data_prueba = ImageDataGenerator(rescale = 1./255)
 
 
-# In[40]:
+# In[66]:
 
 
 prueba_generador = data_prueba.flow_from_directory(
-    directory = "E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/test",
+    path_pruebas,
     target_size = (altura, longitud),
     color_mode = "rgb",
     batch_size = 1,
@@ -191,7 +215,7 @@ prueba_generador = data_prueba.flow_from_directory(
 )
 
 
-# In[54]:
+# In[67]:
 
 
 STEP_SIZE_TEST = prueba_generador.n//prueba_generador.batch_size
@@ -199,20 +223,21 @@ prueba_generador.reset()
 pred = cnn.predict_generator(prueba_generador, steps= STEP_SIZE_TEST,verbose = 1)
 
 
-# In[55]:
+# In[68]:
 
 
 predicted_class_indices = np.argmax(pred, axis = 1)
 
 
-# In[56]:
+# In[95]:
 
 
 print (predicted_class_indices)
+print(len(predicted_class_indices))
 print (type(predicted_class_indices))
 
 
-# In[58]:
+# In[70]:
 
 
 labels = (imagen_entrenamiento.class_indices)
@@ -220,7 +245,7 @@ labels = dict((v,k) for k,v in labels.items())
 predictions = [labels[k] for k in predicted_class_indices]
 
 
-# In[2]:
+# In[93]:
 
 
 filenames = prueba_generador.filenames
@@ -228,38 +253,65 @@ results = pd.DataFrame({"Filename":filenames, "Predictions":predictions})
 results.to_csv("E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/resultados.csv", index = False)
 
 
-# In[1]:
+# In[97]:
 
 
-real_class_indices = []
-for i in range(0, len(filenames)):
+print(len(filenames))
+
+
+# In[114]:
+
+
+real_class_indices=[]
+for i in range(8,len(filenames)):
     your_path = filenames[i]
     path_list = your_path.split(os.sep)
-    if("covid" in path_list[0]):
+    if("covid" in path_list[1]):
         real_class_indices.append(0)
-    if("ct_covid" in path_list[1]):
+    if("nocovid" in path_list[1]):
         real_class_indices.append(1)
-    if("ct_nocovid" in path_list[2]):
-        real_class_indices.append(2)
-    if("nocovid" in path_list[3]):
-        real_class_indices.append(3)
-    print (real_class_indices)
-    print(type(real_class_indices))
-    real_class_indices = np.array(real_class_indices)
-    print (type(real_class_indices))
+print (real_class_indices)
+print(len(real_class_indices))
+real_class_indices = np.array(real_class_indices)
+print (type(real_class_indices))
 
 
 # In[ ]:
+
+
+
+
+
+# In[107]:
+
+
+fig = plt.figure(figsize = (30,30))
+fig.subplots_adjust(hspace = 0.1, wspace = 0.1)
+rows = 10
+cols = len(filenames)//rows if len(filenames) % 2 == 0 else len(filenames)//rows +1
+folder = path_pruebas
+for i in range (0, len (filenames)):
+    your_path = filenames[i]
+    path_list = your_path.split(os.sep)
+    img = mpimg.imread(folder + path_list[1])
+    ax = fig.add_subplot(rows, cols, i+1)
+    ax.axis('Off')
+    plt.imshow(img, interpolation = None)
+    ax.set_title(predictions[i], fintsize =20)
+
+
+# In[146]:
 
 
 cm = confusion_matrix(real_class_indices, predicted_class_indices)
+from itertools import product
 
 
-# In[ ]:
+# In[152]:
 
 
 def plot_confusion_matrix(cm, classes, normalize = False, title = 'Confusion matrix', cmap = plt.cm.Blues):
-    plt.inshow(cm, interpolation = 'nearest', cmap = cmap)
+    plt.imshow(cm, interpolation = 'nearest', cmap = cmap)
     plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
@@ -272,19 +324,31 @@ def plot_confusion_matrix(cm, classes, normalize = False, title = 'Confusion mat
         print ('Confusion matrix, without normalization')
     print(cm)
     thresh = cm.max()/2.
-    for i,j in itertools, product(range(cm.shape[0]),range(cm.shape[1])):
+    for i,j in product(range(cm.shape[0]),range(cm.shape[1])):
         plt.text(j,i,cm[i,j],
-                 horizontalaligment = "center"
+                 horizontalalignment="center",
                  color="white" if cm[i,j]>thresh else "black")
-        plt.tight_layout()
-        plt.ylabel('True label')
-        plt.xlabel('Predicted label')
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
         
 
 
 # In[ ]:
 
 
+
+
+
+# In[153]:
+
+
 cm_plot_labels = imagen_entrenamiento.class_indices
 plot_confusion_matrix(cm,cm_plot_labels, title= 'Matriz de confusion')
+
+
+# In[ ]:
+
+
+
 
