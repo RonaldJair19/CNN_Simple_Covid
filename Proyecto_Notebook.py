@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
+# In[18]:
 
 
 import sys
@@ -17,9 +17,10 @@ from tensorflow.keras.optimizers import Adam
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from mlxtend.evaluate import confusion_matrix
+from keras.applications.mobilenet import preprocess_input
 
 
-# In[28]:
+# In[49]:
 
 
 K.clear_session()
@@ -29,16 +30,16 @@ path_entrenamiento = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conoc
 path_validacion = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/img_validacion'
 path_covid = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/img_entrenamiento/covid'
 path_nocovid = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/img_entrenamiento/nocovid'
-path_pruebas = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/Imagenes_Prueba'
+path_pruebas = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/imagenes_prueba'
 
 
-# In[19]:
+# In[50]:
 
 
 #print('Total de imagenes de entrenamiento:', len(os.listdir('E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/img_entrenamiento/nocovid')))
 
 
-# In[7]:
+# In[51]:
 
 
 #Declarando los parametros de la red neuronal
@@ -51,11 +52,11 @@ FConv2 = 64
 tam_fil1 = (3,3)
 tam_fil2 = (2,2)
 tam_pool = (2,2)
-clases = 2
+clases = 4
 lr = 0.0005
 
 
-# In[8]:
+# In[52]:
 
 
 #Funciones para el preprocesamiento de imagenes
@@ -70,8 +71,10 @@ data_gen_validacion = ImageDataGenerator(
 	rescale = 1./225
 	)
 
+data_prueba = ImageDataGenerator(rescale = 1./225)
 
-# In[31]:
+
+# In[53]:
 
 
 imagen_entrenamiento = data_gen_entrenamiento.flow_from_directory(
@@ -88,8 +91,22 @@ imagen_validacion = data_gen_validacion.flow_from_directory(
 	class_mode = 'categorical'
 	)
 
+prueba_generador = data_prueba.flow_from_directory(
+    path_pruebas,
+    target_size = (altura, longitud),
+    color_mode = "rgb",
+    batch_size = 1,
+    class_mode = None,
+)
 
-# In[34]:
+
+# In[7]:
+
+
+print(imagen_entrenamiento.class_indices)
+
+
+# In[8]:
 
 
 #steps_per_epoch = imagen_entrenamiento.n
@@ -100,7 +117,7 @@ pasos_por_epoca = ((len(os.listdir(path_covid))+len(os.listdir(path_nocovid)))/b
 pasos_de_validacion = 180/20
 
 
-# In[ ]:
+# In[9]:
 
 
 #Editar las capas de convolucion, hay que agregar mas capas debido al tamaño de las imagenes
@@ -122,7 +139,7 @@ cnn.add(Dense(256, activation = 'relu'))
 cnn.add(Dropout(0.5))
 #Octava capa densa
 cnn.add(Dense(clases, activation = 'softmax'))
-#Copilacin
+#Copilacion
 cnn.compile(loss = 'categorical_crossentropy', optimizer = optimizers.Adam(lr = lr, beta_1 = 0.5 ), metrics = ['accuracy'])
 
 H = cnn.fit(imagen_entrenamiento, steps_per_epoch = pasos_por_epoca , epochs = epocas, validation_data = imagen_validacion, validation_steps = pasos_de_validacion)
@@ -139,16 +156,16 @@ cnn.save_weights('E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimie
 print('Modelo Guardado!')
 
 
-# In[40]:
+# In[13]:
 
 
 N = epocas
 plt.style.use("ggplot")
 plt.figure()
-plt.plot(np.arange(0,N),H.history["loss"], label = "train_loss")
-plt.plot(np.arange(0,N),H.history["val_loss"], label = "val_loss")
-plt.plot(np.arange(0,N),H.history["acc"], label = "train_acc")
-plt.plot(np.arange(0,N),H.history["val_acc"], label = "val_acc")
+#plt.plot(np.arange(0,N),H.history["loss"], label = "train_loss")
+#plt.plot(np.arange(0,N),H.history["val_loss"], label = "val_loss")
+plt.plot(np.arange(0,N),H.history["accuracy"], label = "train_acc")
+plt.plot(np.arange(0,N),H.history["val_accuracy"], label = "val_acc")
 plt.title("Entrenamiento Loss and Accurancy en el Dataset")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss/Accurancy")
@@ -156,67 +173,69 @@ plt.legend(loc = "lower left")
 plt.savefig("plot.png")
 
 
-# In[12]:
+# In[39]:
 
 
-data_prueba = ImageDataGenerator(preprocessing_function=preprocess_input)
+data_prueba = ImageDataGenerator(rescale = 1./225)
+
+
+# In[40]:
+
 
 prueba_generador = data_prueba.flow_from_directory(
-    directory = path_pruebas,
+    directory = "E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/test",
     target_size = (altura, longitud),
     color_mode = "rgb",
     batch_size = 1,
     class_mode = None,
-    shuffle = False,
-    seed = 42
 )
 
 
-# In[ ]:
+# In[54]:
 
 
-STEP_SIZE_TEST = prueba_generador//prueba_generador.batch_size
-test_generator.reset()
+STEP_SIZE_TEST = prueba_generador.n//prueba_generador.batch_size
+prueba_generador.reset()
 pred = cnn.predict_generator(prueba_generador, steps= STEP_SIZE_TEST,verbose = 1)
 
 
-# In[ ]:
+# In[55]:
 
 
 predicted_class_indices = np.argmax(pred, axis = 1)
 
 
-# In[ ]:
+# In[56]:
 
 
 print (predicted_class_indices)
 print (type(predicted_class_indices))
 
 
-# In[ ]:
+# In[58]:
 
 
 labels = (imagen_entrenamiento.class_indices)
-labels = dict((v,k) for k,v in lavels.items())
+labels = dict((v,k) for k,v in labels.items())
 predictions = [labels[k] for k in predicted_class_indices]
 
 
-# In[ ]:
+# In[2]:
 
 
 filenames = prueba_generador.filenames
 results = pd.DataFrame({"Filename":filenames, "Predictions":predictions})
-results.to_csv("nombre_del_cvs.csv", index = False)
+results.to_csv("E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/resultados.csv", index = False)
 
 
-# In[ ]:
+# In[1]:
 
 
 real_class_indices = []
 for i in range(0, len(filenames)):
     your_path = filenames[i]
     path_list = your_path.split(os.sep)
-    if("covid" in path_list[1]):
+    if("covid" in path_list[0]):
         real_class_indices.append(0)
     if("ct_covid" in path_list[1]):
         real_class_indices.append(1)
