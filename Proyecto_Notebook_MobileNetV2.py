@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[57]:
+# In[40]:
 
 
 import pandas as pd 
@@ -30,13 +30,13 @@ from itertools import product
 from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2, preprocess_input, decode_predictions
 
 
-# In[58]:
+# In[41]:
 
 
 K.clear_session()
 
 
-# In[59]:
+# In[42]:
 
 
 #Especificando las rutas del data set para los archivos de entrenamiento y de validadion de la red neuronal
@@ -49,19 +49,19 @@ path_covid_val = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimie
 path_nocovid_val = 'E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/img_validacion/nocovid'
 
 
-# In[60]:
+# In[43]:
 
 
 #HiperParametros
-epocas = 100
+epocas = 200
 altura, longitud = 224, 224
 batch_size = 20
 clases = 2
-learning_rate = 0.0003
+learning_rate = 0.0005
 optimizer = Adam(lr=learning_rate)
 
 
-# In[61]:
+# In[44]:
 
 
 #Funciones para el preprocesamiento de imagenes
@@ -69,9 +69,9 @@ data_gen_entrenamiento = ImageDataGenerator(
 	rescale = 1./255,
 	shear_range = 0.1,
 	zoom_range = 0.4,
-    rotation_range = 30,
+    rotation_range = 25,
 	horizontal_flip = True,
-    #brightness_range = [0.9,1.1]
+    brightness_range = [0.9,1.1]
 )
 
 data_gen_validacion = ImageDataGenerator(
@@ -81,7 +81,7 @@ data_gen_validacion = ImageDataGenerator(
 data_prueba = ImageDataGenerator(rescale = 1./255)
 
 
-# In[62]:
+# In[45]:
 
 
 imagen_entrenamiento = data_gen_entrenamiento.flow_from_directory(
@@ -107,27 +107,27 @@ prueba_generador = data_prueba.flow_from_directory(
 )
 
 
-# In[63]:
+# In[46]:
 
 
 print(imagen_entrenamiento.class_indices)
 
 
-# In[64]:
+# In[47]:
 
 
 pasos_por_epoca = ((len(os.listdir(path_covid))+len(os.listdir(path_nocovid)))/batch_size)-1
 pasos_de_validacion = ((len(os.listdir(path_covid_val))+len(os.listdir(path_nocovid_val)))/batch_size)-1
 
 
-# In[65]:
+# In[48]:
 
 
 #Implementacion de la arquitectura
 base_model = MobileNetV2(weights = 'imagenet', include_top = False, input_shape = (longitud,altura,3))
 
 
-# In[66]:
+# In[49]:
 
 
 x = base_model.output
@@ -135,11 +135,11 @@ x = GlobalAveragePooling2D()(x)
 #x = Dense(2048, activation = 'relu')(x)
 #x = Dropout(0.50)(x)
 x = BatchNormalization()(x)
-#x = Dense(1024, activation = 'relu')(x)
-#x = Dropout(0.40)(x)
+x = Dense(1024, activation = 'relu')(x)
+x = Dropout(0.60)(x)
 x = Dense(512, activation = 'relu')(x)
 #x = Dense(256, activation = 'relu')(x)
-x = Dropout(0.40)(x)
+x = Dropout(0.50)(x)
 #x = Dense(128, activation = 'relu')(x)
 #x = Dense(64, activation = 'relu')(x)
 #x = Dense(32, activation = 'relu')(x)
@@ -173,13 +173,13 @@ for i , layer in enumerate(model.layers):
 	print(i, layer.name)
 
 
-# In[46]:
+# In[11]:
 
 
 model.summary()
 
 
-# In[67]:
+# In[50]:
 
 
 for layer in model.layers[:155]:
@@ -189,7 +189,7 @@ for layer in model.layers[155:]:
 	layer.trainable = True
 
 
-# In[68]:
+# In[51]:
 
 
 for i, layer in enumerate(model.layers):
@@ -202,7 +202,7 @@ for i, layer in enumerate(model.layers):
 
 
 
-# In[69]:
+# In[52]:
 
 
 model.compile(loss = 'categorical_crossentropy', optimizer = optimizer, metrics = ['accuracy'])
@@ -228,25 +228,25 @@ print('Modelo Guardado!')
 
 
 
-# In[71]:
+# In[54]:
 
 
 N = epocas
 plt.style.use("ggplot")
 plt.figure()
-#plt.plot(np.arange(0,N),H.history["loss"], label = "train_loss")
-#plt.plot(np.arange(0,N),H.history["val_loss"], label = "val_loss")
-plt.plot(np.arange(0,N),H.history["accuracy"], label = "train_acc")
-plt.plot(np.arange(0,N),H.history["val_accuracy"], label = "val_acc")
-plt.title("Precisión de entrenamiento y precisión de validación")
-#plt.title("Pérdida de entrenamiento y pérdida de validación")
+plt.plot(np.arange(0,N),H.history["loss"], label = "train_loss")
+plt.plot(np.arange(0,N),H.history["val_loss"], label = "val_loss")
+#plt.plot(np.arange(0,N),H.history["accuracy"], label = "train_acc")
+#plt.plot(np.arange(0,N),H.history["val_accuracy"], label = "val_acc")
+#plt.title("Precisión de entrenamiento y precisión de validación")
+plt.title("Pérdida de entrenamiento y pérdida de validación")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss/Accurancy")
 plt.legend(loc = "lower left")
 plt.savefig("plot.png")
 
 
-# In[72]:
+# In[55]:
 
 
 STEP_SIZE_TEST = prueba_generador.n//prueba_generador.batch_size
@@ -254,13 +254,13 @@ prueba_generador.reset()
 pred = model.predict(prueba_generador, steps= STEP_SIZE_TEST,verbose = 1)
 
 
-# In[73]:
+# In[58]:
 
 
 predicted_class_indices = np.argmax(pred, axis = 1)
 
 
-# In[74]:
+# In[59]:
 
 
 print (predicted_class_indices)
@@ -268,7 +268,7 @@ print(len(predicted_class_indices))
 print (type(predicted_class_indices))
 
 
-# In[75]:
+# In[60]:
 
 
 labels = (imagen_entrenamiento.class_indices)
@@ -276,12 +276,75 @@ labels = dict((v,k) for k,v in labels.items())
 predictions = [labels[k] for k in predicted_class_indices]
 
 
-# In[76]:
+# In[61]:
 
 
 filenames = prueba_generador.filenames
 results = pd.DataFrame({"Filename":filenames, "Predictions":predictions})
 results.to_csv("E:/Documentos/UTP/Cuarto_Anio/Sistemas_basados_en_el_conocimiento/Proyecto/DataSet/resultados_MobileNetV2.csv", index = False)
+
+
+# In[62]:
+
+
+print(len(filenames))
+
+
+# In[63]:
+
+
+real_class_indices=[]
+for i in range(0,len(filenames)):
+    your_path = filenames[i]
+    path_list = your_path.split(os.sep)
+    if("SarsCov2" in path_list[1]):
+        real_class_indices.append(0)
+    if("nocovid" in path_list[1]):
+        real_class_indices.append(1)
+print (real_class_indices)
+print(len(real_class_indices))
+real_class_indices = np.array(real_class_indices)
+print (type(real_class_indices))
+
+
+# In[64]:
+
+
+cm = confusion_matrix(real_class_indices, predicted_class_indices)
+from itertools import product
+
+
+# In[65]:
+
+
+def plot_confusion_matrix(cm, classes, normalize = False, title = 'Confusion matrix', cmap = plt.cm.Blues):
+    plt.imshow(cm, interpolation = 'nearest', cmap = cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation = 45)
+    plt.yticks(tick_marks, classes)
+    if normalize:
+        cm = cm.astype('float')/cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print ('Confusion matrix, without normalization')
+    print(cm)
+    thresh = cm.max()/2.
+    for i,j in product(range(cm.shape[0]),range(cm.shape[1])):
+        plt.text(j,i,cm[i,j],
+                 horizontalalignment="center",
+                 color="white" if cm[i,j]>thresh else "black")
+    plt.tight_layout()
+    plt.ylabel('Etiqueta Real')
+    plt.xlabel('Etiqueta predecida')
+
+
+# In[66]:
+
+
+cm_plot_labels = imagen_entrenamiento.class_indices
+plot_confusion_matrix(cm,cm_plot_labels, title = 'Matriz de confusion MobileNetV2')
 
 
 # In[ ]:
